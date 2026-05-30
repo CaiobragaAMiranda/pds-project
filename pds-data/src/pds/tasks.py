@@ -27,15 +27,19 @@ def analyze_release_task(self, owner, repo_name, tag, risky_files, start_dt):
         release_id = repo_db.get_or_create_release(project_id, tag, start_dt)
         
         if repo_db.is_release_processed(release_id):
+            repo_db.update_mining_status(project_id, 'PROCESSING', processed_inc=1, tag=tag)
             return f"SKIP: {repo_name} {tag}"
 
         data = analyze_code(owner, repo_name, tag, risky_files)
         if data:
             repo_db.save_metrics(release_id, data)
+            repo_db.update_mining_status(project_id, 'PROCESSING', processed_inc=1, tag=tag)
             return f"SUCCESS: {repo_name} {tag} ({len(data)} metrics)"
         
+        repo_db.update_mining_status(project_id, 'PROCESSING', processed_inc=1, tag=tag)
         return f"EMPTY: {repo_name} {tag}"
     except Exception as exc:
+        repo_db.update_mining_status(project_id, 'FAILED', error=str(exc))
         raise self.retry(exc=exc, countdown=60)
     finally:
         repo_db.close()

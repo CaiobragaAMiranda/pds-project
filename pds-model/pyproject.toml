@@ -6,11 +6,15 @@ authors = [
     {name = "Lincoln Rocha", email = "lincoln@dc.ufc.br"}
 ]
 
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 dependencies = [
     "pandas (>=2.3.0,<3.0.0)",
     "scikit-learn (>=1.2,<1.7)",
-    "imbalanced-learn (>=0.13.0)"
+    "imbalanced-learn (>=0.13.0)",
+    "gymnasium (>=1.3.0,<2.0.0)",
+    "stable-baselines3 (>=2.8.0,<3.0.0)",
+    "torch (>=2.12.0,<3.0.0)",
+    "shimmy (>=2.0.1,<3.0.0)"
 ]
 
 [tool.poetry]

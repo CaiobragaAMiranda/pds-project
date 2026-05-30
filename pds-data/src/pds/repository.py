@@ -74,5 +74,24 @@ class PDSRepository:
         with self.engine.begin() as conn:
             conn.execute(query, data)
 
+    def update_mining_status(self, project_id, status, releases_count=None, processed_inc=0, tag=None, error=None):
+        with self.engine.begin() as conn:
+            # Upsert do progresso
+            query = text("""
+                INSERT INTO mining_progress (project_id, status, total_releases, processed_releases, last_release_tag, error_log, updated_at)
+                VALUES (:pid, :status, :total, :proc, :tag, :error, CURRENT_TIMESTAMP)
+                ON CONFLICT (project_id) DO UPDATE SET 
+                    status = EXCLUDED.status,
+                    total_releases = COALESCE(:total, mining_progress.total_releases),
+                    processed_releases = mining_progress.processed_releases + :proc_inc,
+                    last_release_tag = COALESCE(:tag, mining_progress.last_release_tag),
+                    error_log = :error,
+                    updated_at = CURRENT_TIMESTAMP
+            """)
+            conn.execute(query, {
+                "pid": project_id, "status": status, "total": releases_count, 
+                "proc": processed_inc, "proc_inc": processed_inc, "tag": tag, "error": error
+            })
+
     def close(self):
         self.engine.dispose()

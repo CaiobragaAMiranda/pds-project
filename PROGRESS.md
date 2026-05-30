@@ -24,7 +24,7 @@
 - [x] **Task 3.7:** Dashboard de Monitoramento de Captura (Streamlit + Plotly).
 
 ## 🧠 Fase 4: Inteligência de Dados (Reinforcement Learning)
-- [ ] **Task 4.1:** Implementar Environment PDS (Wrapper para extrair estados/recompensas do PostgreSQL).
-- [ ] **Task 4.2:** Definir Função de Recompensa (Reward Engineering) baseada em Build Outcomes.
-- [ ] **Task 4.3:** Implementar Agente de RL (Deep Q-Learning ou PPO) para predição de falhas.
-- [ ] **Task 4.4:** Criar Loop de Treinamento Contínuo (Online Learning) integrado aos Workers de ETL.
+- [x] **Task 4.1:** Implementar Environment PDS (Wrapper Gymnasium para PostgreSQL).
+- [ ] **Task 4.2:** Treinamento Inicial e Validação de Métricas de Detecção (Precision/Recall).
+- [ ] **Task 4.3:** Implementar Loop de Treinamento Contínuo (Online Learning).
+- [ ] **Task 4.4:** Integração do Agente de RL no `pds-service` para Identificação de Bugs em Tempo Real.

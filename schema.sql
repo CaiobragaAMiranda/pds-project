@@ -75,6 +75,13 @@ normalized_metrics AS (
 )
 SELECT * FROM normalized_metrics;
 
--- Índice para a view
-CREATE INDEX IF NOT EXISTS idx_vw_rl_project ON vw_rl_features(project_id);
-CREATE INDEX IF NOT EXISTS idx_vw_rl_fail ON vw_rl_features(build_fail);
+-- Tabela para rastreamento de progresso da mineração
+CREATE TABLE IF NOT EXISTS mining_progress (
+    project_id INTEGER PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, PROCESSING, COMPLETED, FAILED
+    last_release_tag VARCHAR(100),
+    total_releases INTEGER DEFAULT 0,
+    processed_releases INTEGER DEFAULT 0,
+    error_log TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
