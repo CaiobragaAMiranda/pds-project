@@ -141,16 +141,26 @@ def get_failed_commits(token, owner, repo, since, until):
             
     return list(set(failed_shas))
 
-def get_files_from_commits(token, owner, repo, shas):
-    files = []
-    for sha in shas:
-        url = f"https://api.github.com/repos/{owner}/{repo}/commits/{sha}"
+def get_files_from_commits(token, owner, repo_name, commit_shas):
+    """
+    Retorna lista de dicionários com arquivos, hashes e datas.
+    """
+    files_info = []
+    for sha in commit_shas:
+        url = f"https://api.github.com/repos/{owner}/{repo_name}/commits/{sha}"
         data = make_github_request(url, token)
         if data:
+            c_date = data.get('commit', {}).get('committer', {}).get('date')
             for f in data.get('files', []):
-                if str(f.get('filename')).endswith('.py'):
-                    files.append(f.get('filename'))
-    return list(set(files))
+                fname = f.get('filename')
+                if fname and fname.endswith('.py'):
+                    files_info.append({
+                        'file': fname,
+                        'hash': sha,
+                        'date': c_date
+                    })
+    return files_info # Lista de dicts em vez de lista de strings
+
 
 def analyze_code(owner, repo_name, tag, risky_files):
     repo_dir = f"./{repo_name}"
@@ -218,7 +228,7 @@ def start(token=None):
         sys.exit(1)
 
     print("--- DESCOBRINDO REPOSITÓRIOS POPULARES ---")
-    targets = discover_repositories(token, limit=100)
+    targets = discover_repositories(token, limit=120)
     print(f"--- {len(targets)} projetos identificados para mineração ---")
 
     print(f"--- DESPACHANDO TAREFAS PARA O CELERY ---")
@@ -237,6 +247,15 @@ def start(token=None):
             risky = get_files_from_commits(token, owner, repo, fails)
             
             # Envia para a fila em vez de processar localmente
+            analyze_release_task.delay(owner, repo, tag, risky, start_dt)
+            
+    print(f"\n>>> CONCLUÍDO! Todas as tarefas foram enviadas para a fila.")
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        start(sys.argv[1])
+    else:
+        start()m vez de processar localmente
             analyze_release_task.delay(owner, repo, tag, risky, start_dt)
             
     print(f"\n>>> CONCLUÍDO! Todas as tarefas foram enviadas para a fila.")

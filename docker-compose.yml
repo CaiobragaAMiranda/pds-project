@@ -40,9 +40,27 @@ services:
     environment:
       - DB_HOST=db
       - REDIS_URL=redis://redis:6379/0
+      - MAX_ANALYZE_PROCS=2 # 2 processos por container para estabilidade
     command: ["celery", "-A", "pds.tasks", "worker", "--loglevel=info"]
     deploy:
-      replicas: 2 # Escala horizontal: 2 workers rodando em paralelo
+      replicas: 4 # Total de 4 containers
+      resources:
+        limits:
+          memory: 512M # Limite estrito de RAM por worker
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: pds-data/Dockerfile
+    container_name: pds_dashboard
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+    ports:
+      - "8501:8501"
+    command: ["streamlit", "run", "src/pds/dashboard.py", "--server.address=0.0.0.0"]
+ # Escala horizontal: 2 workers rodando em paralelo
 
 volumes:
   postgres_data:

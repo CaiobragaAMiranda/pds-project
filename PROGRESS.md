@@ -21,7 +21,7 @@
 - [x] **Task 3.4:** Dockerização do Worker de ETL.
 - [x] **Task 3.5:** Descoberta Automática de Repositórios (Top Python Projects).
 - [x] **Task 3.6:** Implementar Fila de Processamento (Celery + Redis) para resiliência.
-- [ ] **Task 3.7:** Dashboard de Monitoramento de Captura (Metabase ou similar).
+- [x] **Task 3.7:** Dashboard de Monitoramento de Captura (Streamlit + Plotly).
 
 ## 🧠 Fase 4: Inteligência de Dados (Reinforcement Learning)
 - [ ] **Task 4.1:** Implementar Environment PDS (Wrapper para extrair estados/recompensas do PostgreSQL).

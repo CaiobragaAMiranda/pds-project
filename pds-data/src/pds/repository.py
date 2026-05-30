@@ -55,8 +55,8 @@ class PDSRepository:
 
         query = text("""
             INSERT INTO file_metrics 
-            (release_id, file_path, loc, com, blk, nof, noc, apf, amc, ner, neh, cyc, mad, build_fail)
-            VALUES (:release_id, :file_path, :loc, :com, :blk, :nof, :noc, :apf, :amc, :ner, :neh, :cyc, :mad, :build_fail)
+            (release_id, file_path, loc, com, blk, nof, noc, apf, amc, ner, neh, cyc, mad, build_fail, commit_hash, commit_date)
+            VALUES (:release_id, :file_path, :loc, :com, :blk, :nof, :noc, :apf, :amc, :ner, :neh, :cyc, :mad, :build_fail, :commit_hash, :commit_date)
             ON CONFLICT (release_id, file_path) DO NOTHING
         """)
         
@@ -65,7 +65,8 @@ class PDSRepository:
                 "release_id": release_id, "file_path": m['FILE'], "loc": m['LOC'], "com": m['COM'], 
                 "blk": m['BLK'], "nof": m['NOF'], "noc": m['NOC'], "apf": m['APF'], 
                 "amc": m['AMC'], "ner": m['NER'], "neh": m['NEH'], "cyc": m['CYC'], 
-                "mad": m['MAD'], "build_fail": bool(m['BUILD_FAIL'])
+                "mad": m['MAD'], "build_fail": bool(m['BUILD_FAIL']),
+                "commit_hash": m.get('COMMIT_HASH'), "commit_date": m.get('COMMIT_DATE')
             }
             for m in metrics_list
         ]

@@ -34,10 +34,47 @@ CREATE TABLE IF NOT EXISTS file_metrics (
     cyc INTEGER,
     mad INTEGER,
     build_fail BOOLEAN DEFAULT FALSE,
+    commit_hash VARCHAR(40),
+    commit_date TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(release_id, file_path)
 );
 
--- Índices para performance
-CREATE INDEX IF NOT EXISTS idx_file_metrics_release ON file_metrics(release_id);
-CREATE INDEX IF NOT EXISTS idx_releases_project ON releases(project_id);
+-- View para Engenharia de Features de RL
+CREATE MATERIALIZED VIEW IF NOT EXISTS vw_rl_features AS
+WITH base_metrics AS (
+    SELECT 
+        fm.*,
+        p.id as project_id,
+        p.name as project_name,
+        -- Calcula o LAG para obter a versão anterior do mesmo arquivo
+        LAG(loc) OVER (PARTITION BY fm.file_path ORDER BY r.published_at) as prev_loc,
+        LAG(cyc) OVER (PARTITION BY fm.file_path ORDER BY r.published_at) as prev_cyc,
+        LAG(mad) OVER (PARTITION BY fm.file_path ORDER BY r.published_at) as prev_mad,
+        -- Extrai componentes temporais
+        EXTRACT(ISODOW FROM COALESCE(fm.commit_date, r.published_at)) as day_of_week
+    FROM file_metrics fm
+    JOIN releases r ON fm.release_id = r.id
+    JOIN projects p ON r.project_id = p.id
+),
+normalized_metrics AS (
+    SELECT 
+        *,
+        -- Deltas (Evolução)
+        loc - COALESCE(prev_loc, loc) as delta_loc,
+        cyc - COALESCE(prev_cyc, cyc) as delta_cyc,
+        mad - COALESCE(prev_mad, mad) as delta_mad,
+        -- Z-Scores por Projeto (Normalização de Escala)
+        (loc - AVG(loc) OVER (PARTITION BY project_id)) / NULLIF(STDDEV(loc) OVER (PARTITION BY project_id), 0) as z_loc,
+        (cyc - AVG(cyc) OVER (PARTITION BY project_id)) / NULLIF(STDDEV(cyc) OVER (PARTITION BY project_id), 0) as z_cyc,
+        (mad - AVG(mad) OVER (PARTITION BY project_id)) / NULLIF(STDDEV(mad) OVER (PARTITION BY project_id), 0) as z_mad,
+        -- Features Cíclicas (Temporalidade)
+        SIN(day_of_week * 2 * PI() / 7) as sin_dow,
+        COS(day_of_week * 2 * PI() / 7) as cos_dow
+    FROM base_metrics
+)
+SELECT * FROM normalized_metrics;
+
+-- Índice para a view
+CREATE INDEX IF NOT EXISTS idx_vw_rl_project ON vw_rl_features(project_id);
+CREATE INDEX IF NOT EXISTS idx_vw_rl_fail ON vw_rl_features(build_fail);
