@@ -3,12 +3,14 @@
 ## 🛠️ Requisitos do Sistema
 - Python >= 3.11
 - Poetry
+- Docker & Docker Compose
 - Acesso à Internet (para API do GitHub)
-- Docker (futuramente para PostgreSQL)
 
 ## 🚀 Como Inicializar
-1. Navegue até a pasta de um dos módulos (ex: `pds-data`).
-2. Execute `poetry install`.
+1. Suba o banco de dados: `docker-compose up -d`.
+2. Configure o arquivo `.env` baseado no `.env.example`.
+3. Navegue até a pasta de um dos módulos (ex: `pds-data`).
+4. Execute `poetry install`.
 3. Para rodar a pipeline de dados: `poetry run python -m pds.pipeline <TOKEN_GITHUB>`.
 
 ## 🧪 Como Testar

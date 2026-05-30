@@ -9,7 +9,15 @@ import git
 import logging
 import os
 import sys
-import pandas as pd # Import pandas as pd para consistência
+import pandas as pd
+from dotenv import load_dotenv
+
+# Configura carregamento do .env
+base_dir = os.path.dirname(os.path.abspath(__file__))
+dotenv_path = os.path.join(base_dir, "..", "..", "..", ".env")
+load_dotenv(dotenv_path)
+
+from pds.repository import PDSRepository
 
 # --- CONFIGURAÇÃO ---
 TARGET_REPOS = [
@@ -18,9 +26,8 @@ TARGET_REPOS = [
     {"owner": "keras-team", "repo": "keras"}
 ]
 
-N_WINDOWS = 20  
+N_WINDOWS = None  # Processar todas as releases
 DELTA = 1
-OUTPUT_FILENAME = "ALL_PROJECTS_DATASET_BUILD_FAILURE.csv" # Nome fixo para o arquivo final
 
 # --- FUNÇÃO DE REDE INTELIGENTE (Rate Limit Handler) ---
 
@@ -195,17 +202,6 @@ def analyze_code(owner, repo_name, tag, risky_files):
         
     return labeled_data
 
-def append_to_csv(data, filename):
-    """Salva dados incrementalmente no arquivo final"""
-    file_exists = os.path.isfile(filename)
-    fieldnames = ['PROJECT', 'FILE', 'LOC', 'COM', 'BLK', 'NOF', 'NOC', 'APF', 'AMC', 'NER', 'NEH', 'CYC', 'MAD', 'BUILD_FAIL']
-    
-    with open(filename, 'a', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=';')
-        if not file_exists:
-            writer.writeheader()
-        writer.writerows(data)
-
 def start(token=None):
     # Prioriza token passado por argumento, depois variável de ambiente
     token = token or os.getenv("GITHUB_TOKEN")
@@ -215,16 +211,14 @@ def start(token=None):
         sys.exit(1)
 
     print(f"--- PIPELINE RESILIENTE (N={N_WINDOWS}) ---")
-    print(f"--- Output: {OUTPUT_FILENAME} ---")
-
-    # Limpa arquivo anterior se quiser começar do zero
-    if os.path.exists(OUTPUT_FILENAME):
-        print(f"Aviso: Adicionando dados ao arquivo existente {OUTPUT_FILENAME}")
-        # os.remove(OUTPUT_FILENAME) # Descomente se quiser apagar sempre
+    
+    repo_db = PDSRepository()
 
     for target in TARGET_REPOS:
         owner, repo = target['owner'], target['repo']
         print(f"\n>>> REPO: {repo}")
+        
+        project_id = repo_db.get_or_create_project(owner, repo)
         
         releases = extract_releases(token, owner, repo)
         timelines = get_timelines(releases, delta=DELTA, limit=N_WINDOWS)
@@ -234,23 +228,30 @@ def start(token=None):
         for i, (tag, start_dt, end_dt) in enumerate(timelines):
             print(f"   Win [{i+1}/{len(timelines)}] Tag: {tag}")
             
+            release_id = repo_db.get_or_create_release(project_id, tag, start_dt)
+            
+            # CHECKPOINT: Pula se já processado
+            if repo_db.is_release_processed(release_id):
+                print(f"      > Release já processada. Pulando...")
+                continue
+            
             fails = get_failed_commits(token, owner, repo, start_dt, end_dt)
-            if not fails: continue
+            if not fails: 
+                print(f"      - Sem falhas de build na janela.")
+                continue
             
             risky = get_files_from_commits(token, owner, repo, fails)
-            
-            # Extrai e já limpa
             data = analyze_code(owner, repo, tag, risky)
             
             if data:
-                # SALVA AGORA! Não espera o fim.
-                append_to_csv(data, OUTPUT_FILENAME)
-                print(f"      + {len(data)} salvos no CSV.")
+                repo_db.save_metrics(release_id, data)
+                print(f"      + {len(data)} métricas salvas no Banco de Dados.")
             
-    print(f"\n>>> CONCLUÍDO! Arquivo final: {OUTPUT_FILENAME}")
+    repo_db.close()
+    print(f"\n>>> CONCLUÍDO! Dados sincronizados com PostgreSQL.")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         start(sys.argv[1])
     else:
-        print("Preciso do token.")
+        start()

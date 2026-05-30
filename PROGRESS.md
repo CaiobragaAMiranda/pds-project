@@ -9,13 +9,13 @@
 - [x] **Task 1.6:** Blindagem para Repositório Público (Segredos, .gitignore, caminhos relativos).
 
 ## 🗄️ Fase 2: Escala & Persistência (PostgreSQL)
-- [ ] **Task 2.1:** Configurar PostgreSQL via Docker.
-- [ ] **Task 2.2:** Desenvolver schema de banco de dados para métricas históricas.
-- [ ] **Task 2.3:** Implementar ingestão automatizada para o banco.
+- [x] **Task 2.1:** Configurar PostgreSQL via Docker.
+- [x] **Task 2.2:** Desenvolver schema de banco de dados para métricas históricas.
+- [x] **Task 2.3:** Implementar ingestão automatizada para o banco.
 
 ## 🔄 Fase 3: ETL de Todas as Releases
-- [ ] **Task 3.1:** Automatizar captura total de releases via API GitHub.
-- [ ] **Task 3.2:** Implementar controle de duplicidade.
+- [x] **Task 3.1:** Automatizar captura total de releases via API GitHub.
+- [x] **Task 3.2:** Implementar controle de duplicidade.
 
 ## 🧠 Fase 4: Inteligência de Dados
 - [ ] **Task 4.1:** Treinamento de modelo sobre base PostgreSQL.
