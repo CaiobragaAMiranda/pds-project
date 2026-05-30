@@ -255,13 +255,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         start(sys.argv[1])
     else:
-        start()m vez de processar localmente
-            analyze_release_task.delay(owner, repo, tag, risky, start_dt)
-            
-    print(f"\n>>> CONCLUÍDO! Todas as tarefas foram enviadas para a fila.")
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        start(sys.argv[1])
-    else:
         start()

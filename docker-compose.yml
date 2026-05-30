@@ -25,10 +25,13 @@ services:
     depends_on:
       - db
       - redis
+    volumes:
+      - ./pds-data/src:/app/src
+      - ./.env:/app/.env
     environment:
       - DB_HOST=db
       - REDIS_URL=redis://redis:6379/0
-    command: ["python", "-m", "pds.pipeline"] # Agora o pipeline só "despacha" as tarefas
+    command: ["python", "-m", "pds.pipeline"]
 
   etl_worker:
     build:
@@ -37,16 +40,25 @@ services:
     depends_on:
       - db
       - redis
+    volumes:
+      - ./pds-data/src:/app/src
+      - ./.env:/app/.env
     environment:
       - DB_HOST=db
       - REDIS_URL=redis://redis:6379/0
-      - MAX_ANALYZE_PROCS=2 # 2 processos por container para estabilidade
+      - MAX_ANALYZE_PROCS=2
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128 # Otimiza fragmentação de VRAM
     command: ["celery", "-A", "pds.tasks", "worker", "--loglevel=info"]
     deploy:
-      replicas: 4 # Total de 4 containers
+      replicas: 4
       resources:
         limits:
-          memory: 512M # Limite estrito de RAM por worker
+          memory: 1G # Aumentado para 1GB RAM por worker para lidar com PyTorch
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   dashboard:
     build:
@@ -55,6 +67,9 @@ services:
     container_name: pds_dashboard
     depends_on:
       - db
+    volumes:
+      - ./pds-data/src:/app/src
+      - ./.env:/app/.env
     environment:
       - DB_HOST=db
     ports:
