@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Project specific
+ALL_PROJECTS_DATASET_BUILD_FAILURE.csv
+pipeline.log
+*.pkl
+cleanup.py
+
+# Data/Clones
+pds-data/src/pds/keras/
+pds-data/src/pds/numpy/
+pds-data/src/pds/scikit-learn/
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store

@@ -206,7 +206,14 @@ def append_to_csv(data, filename):
             writer.writeheader()
         writer.writerows(data)
 
-def start(token):
+def start(token=None):
+    # Prioriza token passado por argumento, depois variável de ambiente
+    token = token or os.getenv("GITHUB_TOKEN")
+    
+    if not token:
+        print("Erro: GITHUB_TOKEN não configurado. Adicione ao arquivo .env ou passe como argumento.")
+        sys.exit(1)
+
     print(f"--- PIPELINE RESILIENTE (N={N_WINDOWS}) ---")
     print(f"--- Output: {OUTPUT_FILENAME} ---")
 

@@ -37,46 +37,45 @@ def max_ast_depth(tree: ast.AST) -> int:
 
     return visit(tree)
 
-def count_comments_and_blanks(path: str) -> tuple[int, int]:
+def count_comments_and_blanks(source: str) -> tuple[int, int]:
     """
-    Conta comentários e linhas em branco usando o módulo tokenize.
-    Comentários são detectados por tokens COMMENT.
+    Conta comentários e linhas em branco usando uma string de código.
     """
     comments = blanks = 0
+    lines = source.splitlines()
+    
+    # Contar linhas em branco
+    for line in lines:
+        if not line.strip():
+            blanks += 1
 
-    # Contar comentários
-    with open(path, 'rb') as f:
-        tokens = tokenize.tokenize(f.readline)
+    # Contar comentários usando tokenize
+    try:
+        import io
+        tokens = tokenize.generate_tokens(io.StringIO(source).readline)
         for tok in tokens:
             if tok.type == tokenize.COMMENT:
                 comments += 1
-
-    # Contar linhas em branco
-    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-        for line in f:
-            if not line.strip():
-                blanks += 1
+    except Exception as e:
+        import logging
+        logging.warning(f"Erro ao tokenizar código para contagem de comentários: {e}")
 
     return comments, blanks
 
-def analyze_file(path: str) -> dict:
+def calculate_metrics(source: str, file_label: str = "memory") -> dict:
     """
-    Analisa um arquivo .py, extrai diversas métricas e retorna um dicionário com os resultados.
+    Analisa o código fonte fornecido e extrai métricas.
     """
-    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-        src = f.read()
-
-    tree = ast.parse(src)
+    tree = ast.parse(source)
 
     # Métricas básicas
-    loc = sum(1 for l in src.splitlines() if l.strip())
-    comments, blanks = count_comments_and_blanks(path)
+    loc = sum(1 for l in source.splitlines() if l.strip())
+    comments, blanks = count_comments_and_blanks(source)
 
     # Coleta funções e classes
     funcs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
     classes = [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
 
-    # Estatísticas de funções e classes
     n_funcs = len(funcs)
     n_classes = len(classes)
 
@@ -89,11 +88,9 @@ def analyze_file(path: str) -> dict:
 
     avg_methods = (sum(methods_per_class) / n_classes) if n_classes else 0.0
     
-    # Exceções Levantadas e Tratadas
     n_raises = sum(isinstance(n, ast.Raise) for n in ast.walk(tree))
     n_except = sum(isinstance(n, ast.ExceptHandler) for n in ast.walk(tree))
 
-    # Numero de chamadas internas e externas
     defined_funcs = {f.name for f in funcs}
     n_internal = n_external = 0
     for n in ast.walk(tree):
@@ -104,26 +101,32 @@ def analyze_file(path: str) -> dict:
             else:
                 n_external += 1
 
-
-    # Complexidade e profundidade AST
     cyclo = count_decision_points(tree)
     depth = max_ast_depth(tree)
 
     return {
-        'FILE': path,
-        'LOC': loc, #Lines of Code
-        'COM': comments, #Lines of Comments
-        'BLK': blanks, #Lines of Blank
-        'NOF': n_funcs, #Number of Functions
-        'NOC': n_classes,#Number of Classes
-        'APF': round(avg_params, 2), #Average Parameters per Function
-        'AMC': round(avg_methods, 2), #Average Methods per Class
-        'NER': n_raises, #Number of Exception Raises
-        'NEH': n_except, #Number of Exception Handlers 
-        'CYC': cyclo, #Cyclomatic Complexity
-        'MAD': depth, #Max AST Depth
+        'FILE': file_label,
+        'LOC': loc,
+        'COM': comments,
+        'BLK': blanks,
+        'NOF': n_funcs,
+        'NOC': n_classes,
+        'APF': round(avg_params, 2),
+        'AMC': round(avg_methods, 2),
+        'NER': n_raises,
+        'NEH': n_except,
+        'CYC': cyclo,
+        'MAD': depth,
         'BUG': 0 
     }
+
+def analyze_file(path: str) -> dict:
+    """
+    Lê um arquivo e delega para calculate_metrics.
+    """
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+        src = f.read()
+    return calculate_metrics(src, path)
 
 def scan_directory(root: str):
     """
