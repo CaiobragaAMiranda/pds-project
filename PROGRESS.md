@@ -19,8 +19,8 @@
 - [x] **Task 3.2:** Implementar controle de duplicidade.
 - [x] **Task 3.3:** Paralelização da análise de código (Multiprocessing).
 - [x] **Task 3.4:** Dockerização do Worker de ETL.
-- [ ] **Task 3.5:** Descoberta Automática de Repositórios (Top Python Projects).
-- [ ] **Task 3.6:** Implementar Fila de Processamento (Celery + Redis) para resiliência.
+- [x] **Task 3.5:** Descoberta Automática de Repositórios (Top Python Projects).
+- [x] **Task 3.6:** Implementar Fila de Processamento (Celery + Redis) para resiliência.
 - [ ] **Task 3.7:** Dashboard de Monitoramento de Captura (Metabase ou similar).
 
 ## 🧠 Fase 4: Inteligência de Dados

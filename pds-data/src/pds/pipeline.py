@@ -171,9 +171,9 @@ def analyze_code(owner, repo_name, tag, risky_files):
         print(f"   [Git Error] {e}")
         return []
     
-    # Métricas
-    from pds import pymetrix # Import tardio para garantir path
-    metrics = list(pymetrix.scan_directory(repo_dir))
+    # Métricas em paralelo
+    from pds import pymetrix
+    metrics = pymetrix.scan_directory_parallel(repo_dir)
     
     # Labeling
     risky_norm = [os.path.normpath(f) for f in risky_files]
@@ -207,6 +207,8 @@ def analyze_code(owner, repo_name, tag, risky_files):
         
     return labeled_data
 
+from pds.tasks import analyze_release_task
+
 def start(token=None):
     # Prioriza token passado por argumento, depois variável de ambiente
     token = token or os.getenv("GITHUB_TOKEN")
@@ -215,45 +217,29 @@ def start(token=None):
         print("Erro: GITHUB_TOKEN não configurado. Adicione ao arquivo .env ou passe como argumento.")
         sys.exit(1)
 
-    print(f"--- PIPELINE RESILIENTE (N={N_WINDOWS}) ---")
-    
-    repo_db = PDSRepository()
+    print("--- DESCOBRINDO REPOSITÓRIOS POPULARES ---")
+    targets = discover_repositories(token, limit=100)
+    print(f"--- {len(targets)} projetos identificados para mineração ---")
 
-    for target in TARGET_REPOS:
+    print(f"--- DESPACHANDO TAREFAS PARA O CELERY ---")
+    
+    for target in targets:
         owner, repo = target['owner'], target['repo']
         print(f"\n>>> REPO: {repo}")
         
-        project_id = repo_db.get_or_create_project(owner, repo)
-        
         releases = extract_releases(token, owner, repo)
-        timelines = get_timelines(releases, delta=DELTA, limit=N_WINDOWS)
-        
-        print(f"   {len(timelines)} janelas para analisar.")
+        timelines = get_timelines(releases, delta=DELTA, limit=None) # Sem limite de releases
         
         for i, (tag, start_dt, end_dt) in enumerate(timelines):
-            print(f"   Win [{i+1}/{len(timelines)}] Tag: {tag}")
-            
-            release_id = repo_db.get_or_create_release(project_id, tag, start_dt)
-            
-            # CHECKPOINT: Pula se já processado
-            if repo_db.is_release_processed(release_id):
-                print(f"      > Release já processada. Pulando...")
-                continue
-            
             fails = get_failed_commits(token, owner, repo, start_dt, end_dt)
-            if not fails: 
-                print(f"      - Sem falhas de build na janela.")
-                continue
+            if not fails: continue
             
             risky = get_files_from_commits(token, owner, repo, fails)
-            data = analyze_code(owner, repo, tag, risky)
             
-            if data:
-                repo_db.save_metrics(release_id, data)
-                print(f"      + {len(data)} métricas salvas no Banco de Dados.")
+            # Envia para a fila em vez de processar localmente
+            analyze_release_task.delay(owner, repo, tag, risky, start_dt)
             
-    repo_db.close()
-    print(f"\n>>> CONCLUÍDO! Dados sincronizados com PostgreSQL.")
+    print(f"\n>>> CONCLUÍDO! Todas as tarefas foram enviadas para a fila.")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

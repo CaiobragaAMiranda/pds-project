@@ -2,6 +2,9 @@ import os
 import ast
 import csv
 import tokenize
+from multiprocessing import Pool, cpu_count
+
+# ... rest of decision logic ...
 
 # Tipos de nó que contam como decisões para complexidade ciclomática
 DECISION_NODES = (
@@ -137,6 +140,19 @@ def scan_directory(root: str):
             if name.endswith('.py'):
                 path = os.path.join(dirpath, name)
                 yield analyze_file(path)
+
+def save_to_csv(data: list[dict], outcsv: str) -> None:
+    """
+    Salva a lista de dicionários em um CSV com as chaves como cabeçalho.
+    """
+    if not data:
+        raise ValueError("Nenhum dado para salvar")
+
+    with open(outcsv, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=data[0].keys())
+        writer.writeheader()
+        writer.writerows(data)
+h)
 
 def save_to_csv(data: list[dict], outcsv: str) -> None:
     """

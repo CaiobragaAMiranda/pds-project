@@ -11,5 +11,38 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: pds_redis
+    ports:
+      - "6379:6379"
+
+  etl_scheduler:
+    build:
+      context: .
+      dockerfile: pds-data/Dockerfile
+    container_name: pds_etl_scheduler
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DB_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+    command: ["python", "-m", "pds.pipeline"] # Agora o pipeline só "despacha" as tarefas
+
+  etl_worker:
+    build:
+      context: .
+      dockerfile: pds-data/Dockerfile
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DB_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+    command: ["celery", "-A", "pds.tasks", "worker", "--loglevel=info"]
+    deploy:
+      replicas: 2 # Escala horizontal: 2 workers rodando em paralelo
+
 volumes:
   postgres_data:
