@@ -23,7 +23,12 @@ from pds.repository import PDSRepository
 TARGET_REPOS = [
     {"owner": "scikit-learn", "repo": "scikit-learn"},
     {"owner": "numpy", "repo": "numpy"},
-    {"owner": "keras-team", "repo": "keras"}
+    {"owner": "keras-team", "repo": "keras"},
+    {"owner": "pandas-dev", "repo": "pandas"},
+    {"owner": "django", "repo": "django"},
+    {"owner": "psf", "repo": "requests"},
+    {"owner": "pallets", "repo": "flask"},
+    {"owner": "ansible", "repo": "ansible"}
 ]
 
 N_WINDOWS = None  # Processar todas as releases
