@@ -23,6 +23,8 @@
 - [x] **Task 3.6:** Implementar Fila de Processamento (Celery + Redis) para resiliência.
 - [ ] **Task 3.7:** Dashboard de Monitoramento de Captura (Metabase ou similar).
 
-## 🧠 Fase 4: Inteligência de Dados
-- [ ] **Task 4.1:** Refatorar `pds-model` para consumir dados do PostgreSQL.
-- [ ] **Task 4.2:** Treinamento de modelo sobre base histórica.
+## 🧠 Fase 4: Inteligência de Dados (Reinforcement Learning)
+- [ ] **Task 4.1:** Implementar Environment PDS (Wrapper para extrair estados/recompensas do PostgreSQL).
+- [ ] **Task 4.2:** Definir Função de Recompensa (Reward Engineering) baseada em Build Outcomes.
+- [ ] **Task 4.3:** Implementar Agente de RL (Deep Q-Learning ou PPO) para predição de falhas.
+- [ ] **Task 4.4:** Criar Loop de Treinamento Contínuo (Online Learning) integrado aos Workers de ETL.
