@@ -85,3 +85,14 @@ CREATE TABLE IF NOT EXISTS mining_progress (
     error_log TEXT,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Tabela de Metadados do Sistema (Treino, Versões, etc)
+CREATE TABLE IF NOT EXISTS system_metadata (
+    key VARCHAR(50) PRIMARY KEY,
+    value TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Inicializa o contador de releases treinadas
+INSERT INTO system_metadata (key, value) VALUES ('last_trained_release_count', '0')
+ON CONFLICT DO NOTHING;

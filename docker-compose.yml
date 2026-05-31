@@ -71,7 +71,23 @@ services:
     ports:
       - "8501:8501"
     command: ["streamlit", "run", "src/pds/dashboard.py", "--server.address=0.0.0.0"]
- # Escala horizontal: 2 workers rodando em paralelo
+
+  rl_trainer:
+    build:
+      context: .
+      dockerfile: pds-model/Dockerfile
+    container_name: pds_rl_trainer
+    depends_on:
+      - db
+    volumes:
+      - ./pds-model:/app
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:32
+    command: ["python", "-m", "pds.orchestrator"]
 
 volumes:
   postgres_data:
