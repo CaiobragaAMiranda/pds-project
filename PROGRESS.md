@@ -30,4 +30,4 @@
 - [x] **Task 4.2:** Treinamento Inicial e Validação de Métricas de Detecção (Migrado para DB).
 - [ ] **Task 4.3:** Implementar Loop de Treinamento Contínuo (Online Learning).
 - [x] **Task 4.4:** Integração do Agente de RL no `pds-service` para Identificação de Bugs em Tempo Real.
-- [ ] **Task 4.5:** Implementar manutenção automática de Materialized Views (vw_rl_features).
+- [x] **Task 4.5:** Implementar manutenção automática de Materialized Views (vw_rl_features).

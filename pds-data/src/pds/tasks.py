@@ -34,6 +34,7 @@ def analyze_release_task(self, owner, repo_name, tag, risky_files, start_dt):
         if data:
             repo_db.save_metrics(release_id, data)
             repo_db.update_mining_status(project_id, 'PROCESSING', processed_inc=1, tag=tag)
+            repo_db.refresh_materialized_view()
             return f"SUCCESS: {repo_name} {tag} ({len(data)} metrics)"
         
         repo_db.update_mining_status(project_id, 'PROCESSING', processed_inc=1, tag=tag)

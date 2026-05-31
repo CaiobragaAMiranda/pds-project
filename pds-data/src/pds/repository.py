@@ -93,5 +93,14 @@ class PDSRepository:
                 "proc": processed_inc, "proc_inc": processed_inc, "tag": tag, "error": error
             })
 
+    def refresh_materialized_view(self):
+        """Atualiza a Materialized View de features para o RL."""
+        with self.engine.begin() as conn:
+            # PostgreSQL requires CONCURRENTLY if we want to read while refreshing, 
+            # but it requires a UNIQUE INDEX on the view. 
+            # For simplicity in this stage, we'll use standard REFRESH.
+            conn.execute(text("REFRESH MATERIALIZED VIEW vw_rl_features;"))
+            logging.info("Materialized view 'vw_rl_features' refreshed.")
+
     def close(self):
         self.engine.dispose()
