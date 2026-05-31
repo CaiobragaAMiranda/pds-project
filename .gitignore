@@ -16,10 +16,10 @@ pipeline.log
 *.pkl
 cleanup.py
 
-# Data/Clones
-pds-data/AutoGPT/
-pds-data/numpy/
-pds-data/scikit-learn/
+# Data/Clones (Ignore all subdirs except source and tests)
+pds-data/*/
+!pds-data/src/
+!pds-data/tests/
 pds-data/src/pds/keras/
 pds-data/src/pds/numpy/
 pds-data/src/pds/scikit-learn/
