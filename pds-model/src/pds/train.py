@@ -1,25 +1,38 @@
 import os
+import torch
 from stable_baselines3 import PPO
 from pds.environment import PDSEnvironment
 from stable_baselines3.common.callbacks import CheckpointCallback
-import torch
+
+# --- CONFIGURAÇÃO DE MEMÓRIA GPU ---
+# Limita a fragmentação e ajuda a manter o uso abaixo de 2GB
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:32"
 
 def train():
     # 1. Instancia o Ambiente
     env = PDSEnvironment()
     
-    # 2. Define o Modelo (PPO - Proximal Policy Optimization)
-    # Usamos uma MLP (Multi-Layer Perceptron) como política
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    
+    if device == "cuda":
+        # Limita a memória visível ou reserva para evitar estourar os 2GB
+        # O PyTorch não tem um "hard limit" nativo por software tão simples, 
+        # mas podemos monitorar e limpar o cache.
+        torch.cuda.empty_cache()
+        print(f"GPU Detectada: {torch.cuda.get_device_name(0)}")
+        print("Configurando limite de fragmentação para economia de VRAM.")
+
+    # 2. Define o Modelo (PPO)
     model = PPO(
         "MlpPolicy", 
         env, 
         verbose=1, 
-        device="cuda" if torch.cuda.is_available() else "cpu",
+        device=device,
         learning_rate=3e-4,
-        n_steps=2048,
-        batch_size=64,
+        n_steps=1024, # Reduzido de 2048 para economizar memória durante o rollout
+        batch_size=32, # Reduzido de 64 para diminuir o consumo de VRAM
         n_epochs=10,
-        gamma=0.99, # Fator de desconto para importância de eventos futuros
+        gamma=0.99,
     )
 
     print(f"Iniciando treinamento no dispositivo: {model.device}")

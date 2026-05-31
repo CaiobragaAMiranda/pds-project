@@ -12,7 +12,7 @@ app.conf.update(
     timezone='UTC',
     enable_utc=True,
     task_acks_late=True, # Garante que a tarefa só saia da fila após conclusão
-    worker_prefetch_multiplier=1 # Uma tarefa por vez por worker para evitar sobrecarga
+    worker_prefetch_multiplier=4 # Aumentado de 1 para 4 para acelerar o processamento
 )
 
 # Importações tardias para as tarefas

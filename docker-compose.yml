@@ -27,9 +27,11 @@ services:
       - redis
     volumes:
       - ./pds-data/src:/app/src
-      - ./.env:/app/.env
+    env_file:
+      - .env
     environment:
       - DB_HOST=db
+      - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/0
     command: ["python", "-m", "pds.pipeline"]
 
@@ -42,23 +44,15 @@ services:
       - redis
     volumes:
       - ./pds-data/src:/app/src
-      - ./.env:/app/.env
+    env_file:
+      - .env
     environment:
       - DB_HOST=db
+      - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/0
-      - MAX_ANALYZE_PROCS=2
-      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128 # Otimiza fragmentação de VRAM
-    command: ["celery", "-A", "pds.tasks", "worker", "--loglevel=info"]
-    deploy:
-      replicas: 4
-      resources:
-        limits:
-          memory: 1G # Aumentado para 1GB RAM por worker para lidar com PyTorch
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+      - MAX_ANALYZE_PROCS=4
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:32
+    command: ["celery", "-A", "pds.tasks", "worker", "--loglevel=info", "--pool=solo"]
 
   dashboard:
     build:
@@ -69,9 +63,11 @@ services:
       - db
     volumes:
       - ./pds-data/src:/app/src
-      - ./.env:/app/.env
+    env_file:
+      - .env
     environment:
       - DB_HOST=db
+      - DB_PORT=5432
     ports:
       - "8501:8501"
     command: ["streamlit", "run", "src/pds/dashboard.py", "--server.address=0.0.0.0"]

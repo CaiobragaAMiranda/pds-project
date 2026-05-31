@@ -2,6 +2,9 @@ import pandas
 import pickle
 import logging
 import sys
+import os
+from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
 
 from sklearn.svm import SVC,LinearSVC
 from sklearn.linear_model import LogisticRegression
@@ -13,20 +16,46 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn import metrics
 from sklearn.pipeline import Pipeline
 
-def load_dataset(dataset_path) -> pandas.DataFrame:
-    """
-    Carrega um arquivo CSV com métricas extraídas e rótulos associados.
+# Carrega .env
+base_dir = os.path.dirname(os.path.abspath(__file__))
+dotenv_path = os.path.join(base_dir, "..", "..", ".env")
+load_dotenv(dotenv_path)
 
-    Parameters:
-        dataset_path (str): Caminho para o arquivo CSV do dataset.
-
-    Returns:
-        sdp_dataset (pandas.DataFrame): DataFrame com os dados carregados.
+def get_db_engine():
     """
-    sdp_dataset = pandas.read_csv(dataset_path,
-                                  index_col=None,
-                                  header=0,
-                                  delimiter=';')
+    Cria a engine de conexão com o banco de dados.
+    """
+    user = os.getenv("DB_USER", "postgres")
+    pw = os.getenv("DB_PASS", "postgres")
+    host = os.getenv("DB_HOST", "127.0.0.1")
+    port = os.getenv("DB_PORT", "5433")
+    db = os.getenv("DB_NAME", "pds_db")
+    url = f"postgresql+pg8000://{user}:{pw}@{host}:{port}/{db}"
+    return create_engine(url)
+
+def load_dataset(dataset_path=None) -> pandas.DataFrame:
+    """
+    Carrega o dataset do banco de dados ou de um arquivo CSV.
+    Prioriza o banco de dados se nenhum caminho for fornecido.
+    """
+    if dataset_path and os.path.exists(dataset_path):
+        print(f"Carregando dataset de CSV: {dataset_path}")
+        sdp_dataset = pandas.read_csv(dataset_path,
+                                      index_col=None,
+                                      header=0,
+                                      delimiter=';')
+    else:
+        print("Carregando dataset diretamente do Banco de Dados...")
+        engine = get_db_engine()
+        query = text("""
+            SELECT loc, com, blk, nof, noc, apf, amc, ner, neh, cyc, mad, build_fail as bug 
+            FROM file_metrics
+        """)
+        with engine.connect() as conn:
+            sdp_dataset = pandas.read_sql(query, conn)
+        # Renomeia para compatibilidade se necessário (build_fail -> BUG)
+        sdp_dataset = sdp_dataset.rename(columns={"bug": "BUG"})
+        engine.dispose()
     
     return sdp_dataset
 
@@ -292,7 +321,7 @@ def select_best_model(fold_results, selected_models=["LRC", "RFC", "SVC"]):
     
     return best_model_name
     
-def start(dataset_path):
+def start(dataset_path=None):
     logger = logging.getLogger(__name__)
     logging.basicConfig(filename='pipeline.log', encoding='utf-8', level=logging.DEBUG)
     logger.debug("[Step-1] Realizando Benchmark")
@@ -329,4 +358,5 @@ if __name__ == "__main__":
         dataset_path = str(sys.argv[1])
         start(dataset_path)
     else:
-        print("Você deve prover o caminho para o dataset.")    
+        print("Iniciando pipeline com dados do banco de dados...")
+        start()

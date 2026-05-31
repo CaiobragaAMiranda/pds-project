@@ -4,8 +4,6 @@ import csv
 import tokenize
 from multiprocessing import Pool, cpu_count
 
-# ... rest of decision logic ...
-
 # Tipos de nó que contam como decisões para complexidade ciclomática
 DECISION_NODES = (
     ast.If,
@@ -31,7 +29,6 @@ def max_ast_depth(tree: ast.AST) -> int:
     """
     Calcula a profundidade máxima da árvore AST.
     """
-
     def visit(node: ast.AST, depth: int = 0):
         depths = [depth]
         for child in ast.iter_child_nodes(node):
@@ -59,9 +56,8 @@ def count_comments_and_blanks(source: str) -> tuple[int, int]:
         for tok in tokens:
             if tok.type == tokenize.COMMENT:
                 comments += 1
-    except Exception as e:
-        import logging
-        logging.warning(f"Erro ao tokenizar código para contagem de comentários: {e}")
+    except Exception:
+        pass
 
     return comments, blanks
 
@@ -69,97 +65,89 @@ def calculate_metrics(source: str, file_label: str = "memory") -> dict:
     """
     Analisa o código fonte fornecido e extrai métricas.
     """
-    tree = ast.parse(source)
+    try:
+        tree = ast.parse(source)
 
-    # Métricas básicas
-    loc = sum(1 for l in source.splitlines() if l.strip())
-    comments, blanks = count_comments_and_blanks(source)
+        # Métricas básicas
+        loc = sum(1 for l in source.splitlines() if l.strip())
+        comments, blanks = count_comments_and_blanks(source)
 
-    # Coleta funções e classes
-    funcs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
-    classes = [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
+        # Coleta funções e classes
+        funcs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        classes = [n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)]
 
-    n_funcs = len(funcs)
-    n_classes = len(classes)
+        n_funcs = len(funcs)
+        n_classes = len(classes)
 
-    avg_params = (sum(len(f.args.args) for f in funcs) / n_funcs) if n_funcs else 0.0
+        avg_params = (sum(len(f.args.args) for f in funcs) / n_funcs) if n_funcs else 0.0
 
-    methods_per_class = [
-        sum(isinstance(n, ast.FunctionDef) for n in cls.body)
-        for cls in classes
-    ]
+        methods_per_class = [
+            sum(isinstance(n, ast.FunctionDef) for n in cls.body)
+            for cls in classes
+        ]
 
-    avg_methods = (sum(methods_per_class) / n_classes) if n_classes else 0.0
-    
-    n_raises = sum(isinstance(n, ast.Raise) for n in ast.walk(tree))
-    n_except = sum(isinstance(n, ast.ExceptHandler) for n in ast.walk(tree))
+        avg_methods = (sum(methods_per_class) / n_classes) if n_classes else 0.0
+        
+        n_raises = sum(isinstance(n, ast.Raise) for n in ast.walk(tree))
+        n_except = sum(isinstance(n, ast.ExceptHandler) for n in ast.walk(tree))
 
-    defined_funcs = {f.name for f in funcs}
-    n_internal = n_external = 0
-    for n in ast.walk(tree):
-        if isinstance(n, ast.Call):
-            func = n.func
-            if isinstance(func, ast.Name) and func.id in defined_funcs:
-                n_internal += 1
-            else:
-                n_external += 1
+        cyclo = count_decision_points(tree)
+        depth = max_ast_depth(tree)
 
-    cyclo = count_decision_points(tree)
-    depth = max_ast_depth(tree)
-
-    return {
-        'FILE': file_label,
-        'LOC': loc,
-        'COM': comments,
-        'BLK': blanks,
-        'NOF': n_funcs,
-        'NOC': n_classes,
-        'APF': round(avg_params, 2),
-        'AMC': round(avg_methods, 2),
-        'NER': n_raises,
-        'NEH': n_except,
-        'CYC': cyclo,
-        'MAD': depth,
-        'BUG': 0 
-    }
+        return {
+            'FILE': file_label,
+            'LOC': loc,
+            'COM': comments,
+            'BLK': blanks,
+            'NOF': n_funcs,
+            'NOC': n_classes,
+            'APF': round(avg_params, 2),
+            'AMC': round(avg_methods, 2),
+            'NER': n_raises,
+            'NEH': n_except,
+            'CYC': cyclo,
+            'MAD': depth
+        }
+    except Exception:
+        return None
 
 def analyze_file(path: str) -> dict:
     """
     Lê um arquivo e delega para calculate_metrics.
     """
-    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-        src = f.read()
-    return calculate_metrics(src, path)
+    try:
+        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            src = f.read()
+        return calculate_metrics(src, path)
+    except Exception:
+        return None
 
-def scan_directory(root: str):
+def scan_directory_parallel(root: str):
     """
-    Varre recursivamente um diretório e processa todos os arquivos .py.
+    Varre um diretório e processa arquivos .py em paralelo.
+    Limitado para evitar esgotamento de memória.
     """
+    files_to_process = []
     for dirpath, _, files in os.walk(root):
         for name in files:
             if name.endswith('.py'):
-                path = os.path.join(dirpath, name)
-                yield analyze_file(path)
+                files_to_process.append(os.path.join(dirpath, name))
+    
+    # Limita o número de processos para evitar estourar a RAM
+    # Especialmente importante se rodando dentro de um Celery Worker
+    num_processes = min(cpu_count(), 4) 
+    
+    with Pool(processes=num_processes) as pool:
+        results = pool.map(analyze_file, files_to_process)
+    
+    return [r for r in results if r is not None]
 
 def save_to_csv(data: list[dict], outcsv: str) -> None:
     """
-    Salva a lista de dicionários em um CSV com as chaves como cabeçalho.
+    Salva a lista de dicionários em um CSV.
     """
     if not data:
-        raise ValueError("Nenhum dado para salvar")
-
-    with open(outcsv, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=data[0].keys())
-        writer.writeheader()
-        writer.writerows(data)
-h)
-
-def save_to_csv(data: list[dict], outcsv: str) -> None:
-    """
-    Salva a lista de dicionários em um CSV com as chaves como cabeçalho.
-    """
-    if not data:
-        raise ValueError("Nenhum dado para salvar")
+        return
 
     with open(outcsv, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=data[0].keys())
