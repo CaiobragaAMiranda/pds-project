@@ -11,7 +11,13 @@ dependencies = [
     "flask (>=3.1.1,<4.0.0)",
     "pandas (>=2.3.0,<3.0.0)",
     "scikit-learn (>=1.2,<1.7)",
-    "imbalanced-learn (>=0.13.0)"
+    "imbalanced-learn (>=0.13.0)",
+    "stable-baselines3 (>=2.5.0,<3.0.0)",
+    "torch (>=2.6.0,<3.0.0)",
+    "gymnasium (>=0.29.0,<1.0.0)",
+    "sqlalchemy (>=2.0.0,<3.0.0)",
+    "pg8000 (>=1.30.0,<2.0.0)",
+    "python-dotenv (>=1.0.0,<2.0.0)"
 ]
 
 [tool.poetry]

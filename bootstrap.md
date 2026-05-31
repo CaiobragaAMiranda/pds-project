@@ -26,3 +26,4 @@
 - **Persistência:** PostgreSQL 15 (Relacional) com Engenharia de Features via SQL Views.
 - **Extração:** Distribuída via Celery/Redis com 4 workers paralelos.
 - **IA:** Ambiente Gymnasium configurado para Reinforcement Learning com suporte a GPU/CUDA.
+- **Serviço:** `pds-service` integrado com o Agente RL (PPO). O sistema alterna automaticamente entre o modelo supervisionado (Random Forest) e o Agente RL (Bug Hunter) dependendo da presença do arquivo `.zip`. A inferência de RL utiliza contexto histórico diretamente do PostgreSQL.
